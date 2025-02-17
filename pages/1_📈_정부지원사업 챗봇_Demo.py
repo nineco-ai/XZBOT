@@ -67,10 +67,17 @@ context_input = st.sidebar.text_area("컨텍스트를 입력하세요:", height=
 
 # 챗봇 인터페이스 추가
 st.header("챗봇")
-user_input = st.text_input("질문을 입력하세요:")
-if user_input:
-    response = chatbot_response(user_input, context_input)
-    st.write(response)
+st.markdown(
+    '''
+    <iframe
+    src="https://web-production-b892.up.railway.app/chatbot/2cuVKnu03YsqCuZ0"
+    style="width: 100%; height: 100%; min-height: 700px"
+    frameborder="0"
+    allow="microphone">
+    </iframe>
+    ''',
+    unsafe_allow_html=True,
+)
 
 plotting_demo()
 
