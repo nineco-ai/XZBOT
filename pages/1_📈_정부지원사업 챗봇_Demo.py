@@ -5,16 +5,12 @@ import streamlit.components.v1 as components
 LOGGER = get_logger(__name__)
 
 def init_session_state():
-    """세션 상태 초기화"""
     if 'chat_history' not in st.session_state:
         st.session_state.chat_history = []
     if 'context' not in st.session_state:
         st.session_state.context = ""
 
 def main():
-    # 세션 상태 초기화
-    init_session_state()
-    
     # 페이지 설정
     st.set_page_config(
         page_title="AI 지원사업 챗봇",
@@ -74,6 +70,13 @@ def main():
             min-width: 300px;
             max-width: 400px;
         }
+        .usage-guide {
+            margin: 2rem 0;
+            padding: 1rem;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
         </style>
     """, unsafe_allow_html=True)
     
@@ -90,40 +93,54 @@ def main():
             key="context_input"
         )
     
-    # 챗봇 인터페이스를 먼저 표시
-    st.header("챗봇 인터페이스")
-    
-    # iframe을 직접 HTML로 삽입
-    html_code = """
-        <div style="width: 100%; height: 800px; padding: 0; border-radius: 10px; overflow: hidden; margin: 1rem 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+    # 1. iframe 챗봇
+    components.html(
+        f'''
+        <div style="width: 100%; height: 700px; margin: 0; padding: 0;">
             <iframe 
                 src="https://web-production-b892.up.railway.app/chatbot/2cuVKnu03YsqCuZ0"
                 width="100%"
                 height="100%"
+                style="width: 100%; height: 700px; border: none;"
                 frameborder="0"
-                allow="microphone"
-                style="width: 1px; min-width: 100%; height: 100%; min-height: 800px;"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
-            </iframe>
+                allow="microphone *"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"
+            ></iframe>
         </div>
-    """
-    
-    # iframe 표시
-    components.html(
-        html_code,
-        height=850,
+        ''',
+        height=700,
         scrolling=True
     )
     
-    # 프로젝트 소개
-    st.markdown("### 프로젝트 소개")
+    # 2. 챗봇 사용방법
+    st.markdown(
+        """
+        <div class="usage-guide">
+            <h3>💡 챗봇 사용방법</h3>
+            <ol>
+                <li>챗봇에 원하시는 질문을 입력해주세요</li>
+                <li>지원사업 관련 정보를 얻으실 수 있습니다</li>
+                <li>추가 질문이나 상세 정보가 필요하시면 더 자세히 물어보실 수 있습니다</li>
+            </ol>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # 3. 데모 페이지 소개
     st.markdown(
         """
         <div class="info-box">
-            <h4>데모 페이지 소개</h4>
+            <h4>📌 데모 페이지 소개</h4>
             <p>이 챗봇은 현재까지 공개된 지원사업을 매일 수집하여 분류하고 검색하는 기능을 시연하기 위해 제작된 데모 페이지입니다.</p>
         </div>
-        
+        """,
+        unsafe_allow_html=True
+    )
+    
+    # 4. 현재 진행중인 프로젝트
+    st.markdown(
+        """
         <div class="project-status">
             <h4>🚀 현재 진행 중인 프로젝트</h4>
             <p>시흥XZ청년단은 현재 각 회원사의 특성과 필요에 맞는 맞춤형 지원사업 매칭 서비스를 개발하고 있습니다. 
@@ -132,14 +149,6 @@ def main():
         """,
         unsafe_allow_html=True
     )
-    
-    # 설명 섹션
-    with st.expander("챗봇 사용 방법"):
-        st.markdown("""
-        1. 챗봇에 원하시는 질문을 입력해주세요
-        2. 지원사업 관련 정보를 얻으실 수 있습니다
-        3. 추가 질문이나 상세 정보가 필요하시면 더 자세히 물어보실 수 있습니다
-        """)
 
 if __name__ == "__main__":
     main()
