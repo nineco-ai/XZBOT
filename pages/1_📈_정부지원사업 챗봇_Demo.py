@@ -34,43 +34,51 @@ def main():
             max-width: 100%;
             padding: 2rem;
         }
-        .iframe-container {
-            position: relative;
-            width: 100%;
-            height: 800px;
-            overflow: hidden;
-            border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background-color: white;
-            margin: 1rem 0;
-        }
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
         .info-box {
             background-color: #f8f9fa;
             border-left: 4px solid #1f77b4;
-            padding: 1rem;
+            padding: 1.5rem;
             margin: 1rem 0;
             border-radius: 0 4px 4px 0;
         }
+        .info-box h4 {
+            color: #1f77b4;
+            margin-bottom: 0.8rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .info-box p {
+            color: #2c3e50;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
         .project-status {
-            background-color: #e8f4f8;
+            background-color: #e1f5fe;
             border-radius: 8px;
             padding: 1.5rem;
             margin-top: 1rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
+        .project-status h4 {
+            color: #0277bd;
+            margin-bottom: 0.8rem;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        .project-status p {
+            color: #1a237e;
+            line-height: 1.6;
+            font-size: 1rem;
+        }
+        [data-testid="stSidebar"] {
+            min-width: 300px;
+            max-width: 400px;
+        }
         </style>
     """, unsafe_allow_html=True)
     
     # 제목
-    st.markdown("# 시흥XZ청년단 AI 지원사업 챗봇 🤖")
+    st.markdown("# AI 지원사업 챗봇 🤖")
     
     # 사이드바
     with st.sidebar:
@@ -82,34 +90,32 @@ def main():
             key="context_input"
         )
     
-    # 챗봇 인터페이스
+    # 챗봇 인터페이스를 먼저 표시
     st.header("챗봇 인터페이스")
     
-    # HTML 컴포넌트로 iframe 삽입
-    components.html(
-        """
-        <div class="iframe-container">
-            <iframe
+    # iframe을 직접 HTML로 삽입
+    html_code = """
+        <div style="width: 100%; height: 800px; padding: 0; border-radius: 10px; overflow: hidden; margin: 1rem 0; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+            <iframe 
                 src="https://web-production-b892.up.railway.app/chatbot/2cuVKnu03YsqCuZ0"
-                style="width: 100%; height: 100%;"
+                width="100%"
+                height="100%"
                 frameborder="0"
                 allow="microphone"
-                sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
-            ></iframe>
+                style="width: 1px; min-width: 100%; height: 100%; min-height: 800px;"
+                sandbox="allow-same-origin allow-scripts allow-popups allow-forms">
+            </iframe>
         </div>
-        """,
-        height=800,
+    """
+    
+    # iframe 표시
+    components.html(
+        html_code,
+        height=850,
+        scrolling=True
     )
     
-    # 설명 섹션
-    with st.expander("챗봇 사용 방법", expanded=True):
-        st.markdown("""
-        1. 챗봇에 원하시는 질문을 입력해주세요
-        2. 지원사업 관련 정보를 얻으실 수 있습니다
-        3. 추가 질문이나 상세 정보가 필요하시면 더 자세히 물어보실 수 있습니다
-        """)
-    
-    # 추가 설명 섹션
+    # 프로젝트 소개
     st.markdown("### 프로젝트 소개")
     st.markdown(
         """
@@ -126,6 +132,14 @@ def main():
         """,
         unsafe_allow_html=True
     )
+    
+    # 설명 섹션
+    with st.expander("챗봇 사용 방법"):
+        st.markdown("""
+        1. 챗봇에 원하시는 질문을 입력해주세요
+        2. 지원사업 관련 정보를 얻으실 수 있습니다
+        3. 추가 질문이나 상세 정보가 필요하시면 더 자세히 물어보실 수 있습니다
+        """)
 
 if __name__ == "__main__":
     main()
