@@ -1,11 +1,11 @@
-# 기존에 사용하시던 버전 고정 라이브러리
+
 altair==5.1.2
 numpy==1.26.1
 pandas==2.1.2
 pydeck==0.8.0
 streamlit==1.28.1
 
-# 추가 라이브러리
+
 openai
 tiktoken
 requests
@@ -21,7 +21,7 @@ Markdown
 pdfplumber
 PyPDF2
 pdfminer.six
-beautifulsoup4  # 'bs4' 대신 'beautifulsoup4'가 공식 패키지명입니다.
+beautifulsoup4 
 psycopg2
 psycopg2-binary
 openpyxl
