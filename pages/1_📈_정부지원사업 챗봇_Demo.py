@@ -3,7 +3,7 @@ import streamlit.components.v1 as components
 
 # 페이지 설정 (최상단에 위치해야 합니다)
 st.set_page_config(
-    page_title="시흥XZ청년단 AI 지원사업 챗봇",
+    page_title="AI 지원사업 챗봇",
     page_icon="🤖",
     layout="wide"
 )
@@ -22,7 +22,7 @@ with st.sidebar:
     )
 
 # 메인 페이지 타이틀 (st.title 사용)
-st.title("시흥XZ청년단 AI 지원사업 챗봇")
+st.title("AI 지원사업 챗봇")
 
 # Dify 챗봇 임베드 HTML 코드
 html_code = """
