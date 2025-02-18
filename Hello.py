@@ -10,6 +10,23 @@ def run():
         page_icon="👋",
     )
 
+    # CSS 스타일 추가
+    st.markdown("""
+        <style>
+        .section-divider {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+            border-top: 2px solid #f0f2f6;
+        }
+        .feature-container {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
     # 사이드바
     st.sidebar.success("현재 페이지는 시흥XZ청년단 AI 챗봇 데모 페이지입니다.")
 
@@ -32,56 +49,69 @@ def run():
         """
     )
 
-    # 추가 정보 섹션
-    st.markdown("---")
+    # 명확한 구분선 추가
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
+    
+    # 추가 정보 섹션 헤더
+    st.header("📌 추가 정보")
     
     # 3개 컬럼으로 주요 특징 표시
     col1, col2, col3 = st.columns(3)
 
     with col1:
+        st.markdown('<div class="feature-container">', unsafe_allow_html=True)
         st.markdown("### 🎯 우리의 미션")
         st.write("""
         - 시흥시 청년기업 성장 지원
         - 기업간 정보 교류 활성화
         - 상생 협력 네트워크 구축
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col2:
+        st.markdown('<div class="feature-container">', unsafe_allow_html=True)
         st.markdown("### 🤝 참여 대상")
         st.write("""
         - 시흥시 청년 기업가
         - 예비 창업자
         - 관내 청년 사업가
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with col3:
+        st.markdown('<div class="feature-container">', unsafe_allow_html=True)
         st.markdown("### 💡 주요 활동")
         st.write("""
         - 기업간 정보 교류
         - 성장 경험 공유
         - 협력 프로젝트 추진
         """)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    # 명확한 구분선 추가
+    st.markdown('<div class="section-divider"></div>', unsafe_allow_html=True)
 
     # 문의하기 섹션
-    st.markdown("---")
-    st.markdown("### ✉️ 문의하기")
+    st.header("✉️ 문의하기")
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        name = st.text_input("이름")
-        email = st.text_input("이메일")
-        phone = st.text_input("연락처")
-    
-    with col2:
-        category = st.selectbox(
-            "문의 유형",
-            ["가입 문의", "협력 제안", "기타 문의"]
-        )
-        message = st.text_area("문의 내용")
-    
-    if st.button("문의하기"):
-        st.success("문의가 접수되었습니다. 확인 후 연락드리겠습니다.")
+    # 문의하기 폼을 컨테이너로 감싸기
+    with st.container():
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            name = st.text_input("이름")
+            email = st.text_input("이메일")
+            phone = st.text_input("연락처")
+        
+        with col2:
+            category = st.selectbox(
+                "문의 유형",
+                ["가입 문의", "협력 제안", "기타 문의"]
+            )
+            message = st.text_area("문의 내용")
+        
+        if st.button("문의하기"):
+            st.success("문의가 접수되었습니다. 확인 후 연락드리겠습니다.")
 
 if __name__ == "__main__":
     run()
