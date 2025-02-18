@@ -1,76 +1,57 @@
-# Copyright 2018-2022 Streamlit Inc.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#    http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import streamlit as st
-import inspect
-import textwrap
 import pandas as pd
-import altair as alt
-from utils import show_code
+import requests
+from urllib.parse import urlparse, parse_qs
+import json
 
-from urllib.error import URLError
+def parse_naver_cafe_url(url):
+    """네이버 카페 URL을 파싱하여 필요한 정보를 추출합니다."""
+    parsed_url = urlparse(url)
+    path_parts = parsed_url.path.strip('/').split('/')
+    
+    cafe_id = path_parts[0]  # xzceo
+    article_id = path_parts[1]  # 42
+    
+    return {
+        'cafe_id': cafe_id,
+        'article_id': article_id
+    }
 
-def data_frame_demo():
-    @st.cache_data
-    def get_UN_data():
-        AWS_BUCKET_URL = "http://streamlit-demo-data.s3-us-west-2.amazonaws.com"
-        df = pd.read_csv(AWS_BUCKET_URL + "/agri.csv.gz")
-        return df.set_index("Region")
-
-    try:
-        df = get_UN_data()
-        countries = st.multiselect(
-            "Choose countries", list(df.index), ["China", "United States of America"]
-        )
-        if not countries:
-            st.error("Please select at least one country.")
-        else:
-            data = df.loc[countries]
-            data /= 1000000.0
-            st.write("### Gross Agricultural Production ($B)", data.sort_index())
-
-            data = data.T.reset_index()
-            data = pd.melt(data, id_vars=["index"]).rename(
-                columns={"index": "year", "value": "Gross Agricultural Product ($B)"}
+def create_viewer_app():
+    st.set_page_config(page_title="네이버 카페 게시글 뷰어", page_icon="📑")
+    
+    st.title("네이버 카페 게시글 뷰어")
+    
+    # URL 입력 필드
+    cafe_url = st.text_input(
+        "네이버 카페 URL을 입력하세요",
+        value="https://cafe.naver.com/xzceo/42?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6Inh6Y2VvIiwiYXJ0aWNsZUlkIjo0MiwiaXNzdWVkQXQiOjE3Mzk4MzgxNjkyMDR9.fZfJOICqOZD1upcpqmwRxHH_oP4CfFeEaGee01Sgz4o"
+    )
+    
+    if cafe_url:
+        try:
+            # URL 파싱
+            cafe_info = parse_naver_cafe_url(cafe_url)
+            
+            # 정보 표시
+            st.subheader("URL 정보")
+            st.json(cafe_info)
+            
+            # 모바일 뷰어 링크 생성
+            mobile_url = f"https://m.cafe.naver.com/{cafe_info['cafe_id']}/{cafe_info['article_id']}"
+            st.subheader("모바일 뷰어 링크")
+            st.markdown(f"[모바일에서 보기]({mobile_url})")
+            
+            # PC 뷰어 프레임
+            st.subheader("PC 뷰어")
+            pc_url = f"https://cafe.naver.com/{cafe_info['cafe_id']}/{cafe_info['article_id']}"
+            st.markdown(
+                f'<iframe src="{pc_url}" width="100%" height="600px"></iframe>',
+                unsafe_allow_html=True
             )
-            chart = (
-                alt.Chart(data)
-                .mark_area(opacity=0.3)
-                .encode(
-                    x="year:T",
-                    y=alt.Y("Gross Agricultural Product ($B):Q", stack=None),
-                    color="Region:N",
-                )
-            )
-            st.altair_chart(chart, use_container_width=True)
-    except URLError as e:
-        st.error(
-            """
-            **This demo requires internet access.**
-            Connection error: %s
-        """
-            % e.reason
-        )
+            
+        except Exception as e:
+            st.error(f"URL 처리 중 오류가 발생했습니다: {str(e)}")
 
-st.set_page_config(page_title="DataFrame Demo", page_icon="📊")
-st.markdown("# DataFrame Demo")
-st.sidebar.header("DataFrame Demo")
-st.write(
-    """This demo shows how to use `st.write` to visualize Pandas DataFrames.
-(Data courtesy of the [UN Data Explorer](http://data.un.org/Explorer.aspx).)"""
-)
-
-data_frame_demo()
-
-show_code(data_frame_demo)
+if __name__ == "__main__":
+    create_viewer_app()
