@@ -1,57 +1,92 @@
-import streamlit as st
 import pandas as pd
-import requests
-from urllib.parse import urlparse, parse_qs
-import json
+import streamlit as st
+import matplotlib.pyplot as plt
+import geopandas as gpd
+from shapely.geometry import Point
+from geopy.geocoders import Nominatim
+from geopy.extra.rate_limiter import RateLimiter
 
-def parse_naver_cafe_url(url):
-    """네이버 카페 URL을 파싱하여 필요한 정보를 추출합니다."""
-    parsed_url = urlparse(url)
-    path_parts = parsed_url.path.strip('/').split('/')
-    
-    cafe_id = path_parts[0]  # xzceo
-    article_id = path_parts[1]  # 42
-    
-    return {
-        'cafe_id': cafe_id,
-        'article_id': article_id
-    }
+st.set_page_config(page_title="회사 위치 표시 서비스", page_icon="🏢")
+st.markdown("# 회사 위치 표시 서비스")
 
-def create_viewer_app():
-    st.set_page_config(page_title="네이버 카페 게시글 뷰어", page_icon="📑")
-    
-    st.title("네이버 카페 게시글 뷰어")
-    
-    # URL 입력 필드
-    cafe_url = st.text_input(
-        "네이버 카페 URL을 입력하세요",
-        value="https://cafe.naver.com/xzceo/42?art=ZXh0ZXJuYWwtc2VydmljZS1uYXZlci1zZWFyY2gtY2FmZS1wcg.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYWZlVHlwZSI6IkNBRkVfVVJMIiwiY2FmZVVybCI6Inh6Y2VvIiwiYXJ0aWNsZUlkIjo0MiwiaXNzdWVkQXQiOjE3Mzk4MzgxNjkyMDR9.fZfJOICqOZD1upcpqmwRxHH_oP4CfFeEaGee01Sgz4o"
+# 구글 스프레드시트를 CSV로 불러오기 위한 URL 구성
+# 원본 링크: 
+# https://docs.google.com/spreadsheets/d/1FX49voSom_dLr_tMXUd95g-_yNoDxlg-kEriNHR0t0g/edit?gid=1606270629#gid=1606270629
+# CSV 다운로드 링크:
+sheet_url = (
+    "https://docs.google.com/spreadsheets/d/1FX49voSom_dLr_tMXUd95g-_yNoDxlg-kEriNHR0t0g/"
+    "export?format=csv&gid=1606270629"
+)
+
+st.write("구글 스프레드시트에서 데이터 불러오는 중...")
+try:
+    df = pd.read_csv(sheet_url)
+except Exception as e:
+    st.error("데이터 불러오기 실패: " + str(e))
+    st.stop()
+
+st.write("데이터 미리보기:")
+st.dataframe(df.head())
+
+# 스프레드시트에 회사명을 담은 '회사명' 컬럼과 주소를 담은 '주소' 컬럼이 있다고 가정합니다.
+if "회사명" not in df.columns or "주소" not in df.columns:
+    st.error("스프레드시트에 '회사명'과 '주소' 컬럼이 필요합니다.")
+    st.stop()
+
+st.write("주소를 좌표로 변환 중... (약간의 시간이 소요될 수 있습니다)")
+
+# geopy의 Nominatim 사용 (무료 서비스라서 호출 제한에 유의)
+geolocator = Nominatim(user_agent="myGeocoder")
+geocode = RateLimiter(geolocator.geocode, min_delay_seconds=1)
+
+def get_lat_lon(address):
+    location = geocode(address)
+    if location:
+        return location.latitude, location.longitude
+    else:
+        return None, None
+
+# 각 주소를 지오코딩하여 위도/경도 컬럼 추가
+df["lat"] = None
+df["lon"] = None
+
+for idx, row in df.iterrows():
+    lat, lon = get_lat_lon(row["주소"])
+    df.at[idx, "lat"] = lat
+    df.at[idx, "lon"] = lon
+
+st.write("좌표 변환 완료!")
+st.dataframe(df.head())
+
+# 위도/경도 정보가 없는 행은 제거
+df = df.dropna(subset=["lat", "lon"])
+
+# GeoDataFrame 생성
+gdf = gpd.GeoDataFrame(
+    df,
+    geometry=[Point(x, y) for x, y in zip(df["lon"], df["lat"])],
+    crs="EPSG:4326"
+)
+
+# 지도 그리기 (matplotlib 이용)
+fig, ax = plt.subplots(figsize=(8, 8))
+
+# 회사 위치 마커 표시 (빨간색 원)
+gdf.plot(ax=ax, color="red", markersize=50, label="회사 위치")
+
+# 각 마커 옆에 회사명 텍스트 추가
+for idx, row in gdf.iterrows():
+    ax.annotate(
+        row["회사명"],
+        (row["lon"], row["lat"]),
+        xytext=(3, 3),
+        textcoords="offset points",
+        fontsize=9
     )
-    
-    if cafe_url:
-        try:
-            # URL 파싱
-            cafe_info = parse_naver_cafe_url(cafe_url)
-            
-            # 정보 표시
-            st.subheader("URL 정보")
-            st.json(cafe_info)
-            
-            # 모바일 뷰어 링크 생성
-            mobile_url = f"https://m.cafe.naver.com/{cafe_info['cafe_id']}/{cafe_info['article_id']}"
-            st.subheader("모바일 뷰어 링크")
-            st.markdown(f"[모바일에서 보기]({mobile_url})")
-            
-            # PC 뷰어 프레임
-            st.subheader("PC 뷰어")
-            pc_url = f"https://cafe.naver.com/{cafe_info['cafe_id']}/{cafe_info['article_id']}"
-            st.markdown(
-                f'<iframe src="{pc_url}" width="100%" height="600px"></iframe>',
-                unsafe_allow_html=True
-            )
-            
-        except Exception as e:
-            st.error(f"URL 처리 중 오류가 발생했습니다: {str(e)}")
 
-if __name__ == "__main__":
-    create_viewer_app()
+ax.set_title("회사 위치 지도")
+ax.set_xlabel("경도")
+ax.set_ylabel("위도")
+ax.legend()
+
+st.pyplot(fig)
