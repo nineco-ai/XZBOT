@@ -4,25 +4,31 @@ import pandas as pd
 import folium
 from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut
+import requests
 import time
 
 @st.cache_data
 def get_coordinates(address):
-    """주소를 위도/경도로 변환하는 함수 - '대한민국' 접두어 추가"""
+    """카카오 지오코딩 API를 사용하여 주소를 위도/경도로 변환하는 함수 - '대한민국' 접두어 추가"""
     if not address:  # 주소가 빈 문자열이면 None 반환
         return None
+    # 카카오 REST API 키 (st.secrets 또는 직접 지정)
+    kakao_key = st.secrets["108ba2518f6b60793e420459cccd207c"] if "KAKAO_REST_API_KEY" in st.secrets else "YOUR_KAKAO_API_KEY"
+    url = "https://dapi.kakao.com/v2/local/search/address.json"
+    headers = {"Authorization": f"KakaoAK {kakao_key}"}
+    params = {"query": "대한민국 " + address}
+    
     try:
-        geolocator = Nominatim(user_agent="my_streamlit_app")
-        query = "대한민국 " + address
-        location = geolocator.geocode(query)
-        if location:
-            return (location.latitude, location.longitude)
+        response = requests.get(url, headers=headers, params=params)
+        if response.status_code == 200:
+            result = response.json()
+            if result["documents"]:
+                # 카카오 API는 x(경도), y(위도)를 반환합니다.
+                doc = result["documents"][0]
+                latitude = float(doc["y"])
+                longitude = float(doc["x"])
+                return (latitude, longitude)
         return None
-    except GeocoderTimedOut:
-        time.sleep(1)
-        return get_coordinates(address)
     except Exception as e:
         print(f"Error: {e}")
         return None
@@ -35,7 +41,7 @@ def extract_dong(addr):
     return None
 
 def main():
-    st.title('시흥XZ 청년단 회사 위치 지도')
+    st.title('시흥XZ 청년단 회원 위치 지도')
     
     # 데이터 하드코딩 (예시)
     data = {
@@ -73,7 +79,7 @@ def main():
             '경기도 시흥시 정왕동 1289-8',
             '경기도 시흥시 안현동 446-12',
             '경기도 시흥시 월곶동 1011-24',
-            '경기도 시흥시 미산동 234-12',  # 예시: 하성엔프라 주소
+            '경기도 시흥시 미산동 234-12', 
             '경기도 시흥시 배곧동 204',
             '경기도 시흥시 정왕동 1800-3',
             '경기도 시흥시 정왕동 1800-3',
