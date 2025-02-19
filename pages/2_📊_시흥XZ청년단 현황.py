@@ -2,6 +2,7 @@ import re
 import streamlit as st
 import pandas as pd
 import folium
+from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
@@ -100,7 +101,7 @@ def main():
     st.subheader("회원 정보")
     st.dataframe(df)
     
-    # 먼저 좌표 변환 시도 결과를 저장 (좌표, dong 등)
+    # 좌표 변환 결과 저장 (좌표, dong 등)
     coords_list = []
     dong_map = {}
     failed_indices = []
@@ -140,16 +141,18 @@ def main():
     df['coords'] = coords_list
     
     st.subheader("회사 위치 지도")
+    # 기본 지도 위치 지정 (예: 시흥시 중심)
     m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
+    # MarkerCluster 옵션 조정: zoom 16 이상에서는 클러스터링 해제
+    marker_cluster = MarkerCluster(options={'disableClusteringAtZoom': 16}).add_to(m)
     
-    # 개별 마커를 지도에 추가
     for idx, row in df.iterrows():
         if row['coords']:
             folium.Marker(
-                location=row['coords'],
+                row['coords'],
                 popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
                 tooltip=row['회사명']
-            ).add_to(m)
+            ).add_to(marker_cluster)
     
     folium_static(m)
     
