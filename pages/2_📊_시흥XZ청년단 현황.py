@@ -13,7 +13,7 @@ def get_coordinates(address):
     if not address:  # 주소가 빈 문자열이면 None 반환
         return None
     # 카카오 REST API 키 (st.secrets 또는 직접 지정)
-    kakao_key = st.secrets["108ba2518f6b60793e420459cccd207c"] if "KAKAO_REST_API_KEY" in st.secrets else "YOUR_KAKAO_API_KEY"
+    kakao_key = st.secrets["108ba2518f6b60793e420459cccd207c"] if "108ba2518f6b60793e420459cccd207c" in st.secrets else "YOUR_KAKAO_API_KEY"
     url = "https://dapi.kakao.com/v2/local/search/address.json"
     headers = {"Authorization": f"KakaoAK {kakao_key}"}
     params = {"query": "대한민국 " + address}
