@@ -7,6 +7,7 @@ from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 import time
+import altair as alt  # Altair 임포트
 
 @st.cache_data
 def get_coordinates(address):
@@ -163,8 +164,26 @@ def main():
         st.warning("다음 회사의 주소를 찾지 못했습니다: " + ", ".join(failed_companies))
     
     st.subheader("지역별 분포")
+    # 지역별 분포 데이터 추출 (예: '미산동', '은행동' 등)
     area_counts = df['주소'].str.extract(r'시흥시\s+(\S+)')[0].value_counts()
-    st.bar_chart(area_counts)
+    chart_data = area_counts.reset_index()
+    chart_data.columns = ['지역', '회사수']
+    
+    # Altair 차트를 사용하여 막대 위에 숫자 표시
+    bar_chart = alt.Chart(chart_data).mark_bar().encode(
+        x=alt.X('지역:N', title='지역'),
+        y=alt.Y('회사수:Q', title='회사 수')
+    )
+    
+    text = bar_chart.mark_text(
+        align='center',
+        baseline='bottom',
+        dy=-5  # 막대 위에 표시되는 텍스트의 위치 조정
+    ).encode(
+        text='회사수:Q'
+    )
+    
+    st.altair_chart(bar_chart + text, use_container_width=True)
 
 if __name__ == "__main__":
     main()
