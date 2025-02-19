@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import folium
+from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
@@ -84,29 +85,22 @@ def main():
             '경기도 시흥시 정왕천로 197 동우 디지털단지 B동 216호'
         ]
     }
-    print(data)  # data의 내용을 출력하여 확인
-    
-    # 모든 리스트의 길이가 동일하도록 None으로 채움 (필요한 경우)
-    max_length = max(len(v) for v in data.values())
-    for key in data.keys():
-        while len(data[key]) < max_length:
-            data[key].append(None)
     
     df = pd.DataFrame(data)
     
-    # 데이터프레임 표시
     st.subheader("회원 정보")
     st.dataframe(df)
     
-    # 지도 생성
     st.subheader("회사 위치 지도")
     m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
     
-    # 진행 상황 표시
+    # MarkerCluster를 추가하여 겹치는 마커를 그룹화
+    marker_cluster = MarkerCluster().add_to(m)
+    
     progress_bar = st.progress(0)
     status_text = st.empty()
+    failed_companies = []  # 좌표 변환에 실패한 회사 목록
     
-    # 각 주소에 대해 위도/경도 변환 및 마커 추가
     for idx, row in df.iterrows():
         progress = (idx + 1) / len(df)
         progress_bar.progress(progress)
@@ -118,20 +112,21 @@ def main():
                 coords,
                 popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
                 tooltip=row['회사명']
-            ).add_to(m)
+            ).add_to(marker_cluster)
+        else:
+            failed_companies.append(row['회사명'])
     
-    # 진행 상황 표시 제거
     progress_bar.empty()
     status_text.empty()
     
-    # 지도 표시
     folium_static(m)
     
-    # 데이터 통계
     st.subheader("통계")
     st.write(f"총 회사 수: {len(df)}")
     
-    # 지역별 분포
+    if failed_companies:
+        st.warning("다음 회사의 주소를 찾지 못했습니다: " + ", ".join(failed_companies))
+    
     st.subheader("지역별 분포")
     area_counts = df['주소'].str.extract(r'시흥시\s+(\S+)')[0].value_counts()
     st.bar_chart(area_counts)
