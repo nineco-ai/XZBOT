@@ -2,7 +2,6 @@ import re
 import streamlit as st
 import pandas as pd
 import folium
-from folium.plugins import MarkerCluster
 from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
@@ -142,15 +141,15 @@ def main():
     
     st.subheader("회사 위치 지도")
     m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
-    marker_cluster = MarkerCluster().add_to(m)
     
+    # 개별 마커를 지도에 추가
     for idx, row in df.iterrows():
         if row['coords']:
             folium.Marker(
-                row['coords'],
+                location=row['coords'],
                 popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
                 tooltip=row['회사명']
-            ).add_to(marker_cluster)
+            ).add_to(m)
     
     folium_static(m)
     
