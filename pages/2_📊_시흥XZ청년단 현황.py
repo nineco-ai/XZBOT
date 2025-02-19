@@ -10,10 +10,14 @@ import time
 # 캐시된 좌표 변환 함수
 @st.cache_data
 def get_coordinates(address):
-    """주소를 위도/경도로 변환하는 함수"""
+    """주소를 위도/경도로 변환하는 함수 - '대한민국' 접두어 추가"""
+    if not address:  # 주소가 빈 문자열이면 None 반환
+        return None
     try:
         geolocator = Nominatim(user_agent="my_streamlit_app")
-        location = geolocator.geocode(address)
+        # '대한민국'을 접두어로 추가하여 geocoding 정확도 향상
+        query = "대한민국 " + address
+        location = geolocator.geocode(query)
         if location:
             return location.latitude, location.longitude
         return None
@@ -94,12 +98,12 @@ def main():
     st.subheader("회사 위치 지도")
     m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
     
-    # MarkerCluster를 추가하여 겹치는 마커를 그룹화
+    # MarkerCluster 추가: 겹치는 마커 그룹화
     marker_cluster = MarkerCluster().add_to(m)
     
     progress_bar = st.progress(0)
     status_text = st.empty()
-    failed_companies = []  # 좌표 변환에 실패한 회사 목록
+    failed_companies = []  # 좌표 변환 실패한 회사 기록
     
     for idx, row in df.iterrows():
         progress = (idx + 1) / len(df)
@@ -123,7 +127,6 @@ def main():
     
     st.subheader("통계")
     st.write(f"총 회사 수: {len(df)}")
-    
     if failed_companies:
         st.warning("다음 회사의 주소를 찾지 못했습니다: " + ", ".join(failed_companies))
     
