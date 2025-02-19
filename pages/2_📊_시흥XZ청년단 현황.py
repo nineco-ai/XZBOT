@@ -36,7 +36,7 @@ def extract_dong(addr):
     return None
 
 def main():
-    st.title('시흥XZ 청년단 회사 위치 지도')
+    st.title('시흥XZ 청년단 회원사 위치')
     
     # 데이터 하드코딩 (예시)
     data = {
@@ -138,7 +138,7 @@ def main():
     # 좌표 결과를 df에 추가
     df['coords'] = coords_list
     
-    st.subheader("회사 위치 지도")
+    st.subheader("회원사 분포")
     # 기본 지도 위치 지정 (예: 시흥시 중심)
     m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
     # MarkerCluster 옵션 조정: zoom 16 이상에서는 클러스터링 해제
@@ -155,7 +155,7 @@ def main():
     folium_static(m)
     
     st.subheader("통계")
-    st.write(f"총 회사 수: {len(df)}")
+    st.write(f"총 회원수: {len(df)}")
     failed_companies = [df.loc[idx, '회사명'] for idx in failed_indices if not coords_list[idx]]
     if failed_companies:
         st.warning("다음 회사의 주소를 찾지 못했습니다: " + ", ".join(failed_companies))
