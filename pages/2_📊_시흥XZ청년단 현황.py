@@ -167,7 +167,7 @@ def main():
     chart_data.columns = ['지역', '회사수']
     
     # Altair 차트: 막대 색상을 'steelblue'로 지정하고, 
-    # 각 막대 상단에 굵고 큰 흰색 글씨로 회사 수를 표시 (baseline을 bottom으로 설정)
+    # 각 막대 내부 상단에 굵고 큰 흰색 글씨로 회사 수를 표시 (baseline을 "top"으로, dy를 양수로 주어 내부에 배치)
     bar_chart = alt.Chart(chart_data).mark_bar(color='steelblue').encode(
         x=alt.X('지역:N', title='지역'),
         y=alt.Y('회사수:Q', title='회사 수')
@@ -175,8 +175,8 @@ def main():
     
     text = bar_chart.mark_text(
         align='center',
-        baseline='bottom',  # 텍스트의 하단을 막대 상단에 맞춤
-        dy=-5,             # 약간 위로 오프셋
+        baseline='top',   # 텍스트의 상단을 기준으로 함
+        dy=5,             # 막대 내부 상단에서 약간 아래로 오프셋
         fontSize=25,
         fontWeight='bold',
         color='white'
