@@ -7,7 +7,7 @@ from streamlit_folium import folium_static
 from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 import time
-import altair as alt  # Altair 임포트
+import altair as alt
 
 @st.cache_data
 def get_coordinates(address):
@@ -169,18 +169,21 @@ def main():
     chart_data = area_counts.reset_index()
     chart_data.columns = ['지역', '회사수']
     
-    # Altair 차트를 사용하여 막대 위에 숫자 표시
-    bar_chart = alt.Chart(chart_data).mark_bar().encode(
+    # Altair 차트: 막대 색상을 'steelblue'로 지정하고, 
+    # 각 막대 중앙에 굵고 큰 흰색 글씨로 회사 수를 표시
+    bar_chart = alt.Chart(chart_data).mark_bar(color='steelblue').encode(
         x=alt.X('지역:N', title='지역'),
         y=alt.Y('회사수:Q', title='회사 수')
     )
     
     text = bar_chart.mark_text(
         align='center',
-        baseline='bottom',
-        dy=-5  # 막대 위에 표시되는 텍스트의 위치 조정
+        baseline='middle',
+        fontSize=16,
+        fontWeight='bold',
+        color='white'
     ).encode(
-        text='회사수:Q'
+        text=alt.Text('회사수:Q', format='.0f')
     )
     
     st.altair_chart(bar_chart + text, use_container_width=True)
