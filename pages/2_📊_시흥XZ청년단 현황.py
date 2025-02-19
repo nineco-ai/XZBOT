@@ -1,3 +1,4 @@
+import re
 import streamlit as st
 import pandas as pd
 import folium
@@ -7,7 +8,6 @@ from geopy.geocoders import Nominatim
 from geopy.exc import GeocoderTimedOut
 import time
 
-# 캐시된 좌표 변환 함수
 @st.cache_data
 def get_coordinates(address):
     """주소를 위도/경도로 변환하는 함수 - '대한민국' 접두어 추가"""
@@ -15,18 +15,24 @@ def get_coordinates(address):
         return None
     try:
         geolocator = Nominatim(user_agent="my_streamlit_app")
-        # '대한민국'을 접두어로 추가하여 geocoding 정확도 향상
         query = "대한민국 " + address
         location = geolocator.geocode(query)
         if location:
-            return location.latitude, location.longitude
+            return (location.latitude, location.longitude)
         return None
     except GeocoderTimedOut:
-        time.sleep(1)  # 요청 간에 1초 대기
+        time.sleep(1)
         return get_coordinates(address)
     except Exception as e:
-        print(f"Error: {e}")  # 오류 메시지 출력
+        print(f"Error: {e}")
         return None
+
+def extract_dong(addr):
+    """주소에서 행정동(예: '미산동', '은행동') 추출 (정규표현식은 상황에 따라 수정 필요)"""
+    m = re.search(r'시흥시\s+(\S+동)', addr)
+    if m:
+        return m.group(1)
+    return None
 
 def main():
     st.title('시흥XZ 청년단 회사 위치 지도')
@@ -67,7 +73,7 @@ def main():
             '경기도 시흥시 정왕동 1289-8',
             '경기도 시흥시 안현동 446-12',
             '경기도 시흥시 월곶동 1011-24',
-            '경기도 시흥시 미산동 234-12',  # 하성엔프라의 주소가 누락되어 빈 문자열 처리
+            '경기도 시흥시 미산동 234-12',  # 예시: 하성엔프라 주소
             '경기도 시흥시 배곧동 204',
             '경기도 시흥시 정왕동 1800-3',
             '경기도 시흥시 정왕동 1800-3',
@@ -95,38 +101,62 @@ def main():
     st.subheader("회원 정보")
     st.dataframe(df)
     
-    st.subheader("회사 위치 지도")
-    m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
-    
-    # MarkerCluster 추가: 겹치는 마커 그룹화
-    marker_cluster = MarkerCluster().add_to(m)
+    # 먼저 좌표 변환 시도 결과를 저장 (좌표, dong 등)
+    coords_list = []
+    dong_map = {}
+    failed_indices = []
     
     progress_bar = st.progress(0)
     status_text = st.empty()
-    failed_companies = []  # 좌표 변환 실패한 회사 기록
     
     for idx, row in df.iterrows():
-        progress = (idx + 1) / len(df)
-        progress_bar.progress(progress)
+        progress_bar.progress((idx + 1) / len(df))
         status_text.text(f"처리 중... {idx + 1}/{len(df)}")
         
-        coords = get_coordinates(row['주소'])
-        if coords:
-            folium.Marker(
-                coords,
-                popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
-                tooltip=row['회사명']
-            ).add_to(marker_cluster)
+        coord = get_coordinates(row['주소'])
+        dong = extract_dong(row['주소'])
+        coords_list.append(coord)
+        
+        if coord:
+            # 동별로 좌표 저장
+            if dong:
+                dong_map.setdefault(dong, []).append(coord)
         else:
-            failed_companies.append(row['회사명'])
+            failed_indices.append(idx)
     
     progress_bar.empty()
     status_text.empty()
+    
+    # 실패한 주소들에 대해, 같은 동에서 좌표가 있는 경우 평균 좌표로 대체
+    for idx in failed_indices:
+        addr = df.loc[idx, '주소']
+        dong = extract_dong(addr)
+        if dong and dong in dong_map and len(dong_map[dong]) > 0:
+            # 평균 좌표 계산
+            lat = sum([pt[0] for pt in dong_map[dong]]) / len(dong_map[dong])
+            lon = sum([pt[1] for pt in dong_map[dong]]) / len(dong_map[dong])
+            coords_list[idx] = (lat, lon)
+    
+    # 좌표 결과를 df에 추가
+    df['coords'] = coords_list
+    
+    st.subheader("회사 위치 지도")
+    m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
+    marker_cluster = MarkerCluster().add_to(m)
+    
+    for idx, row in df.iterrows():
+        if row['coords']:
+            folium.Marker(
+                row['coords'],
+                popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
+                tooltip=row['회사명']
+            ).add_to(marker_cluster)
     
     folium_static(m)
     
     st.subheader("통계")
     st.write(f"총 회사 수: {len(df)}")
+    failed_companies = [df.loc[idx, '회사명'] for idx in failed_indices if not coords_list[idx]]
     if failed_companies:
         st.warning("다음 회사의 주소를 찾지 못했습니다: " + ", ".join(failed_companies))
     
