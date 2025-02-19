@@ -99,9 +99,6 @@ def main():
     
     df = pd.DataFrame(data)
     
-    st.subheader("회원 정보")
-    st.dataframe(df)
-    
     # 좌표 변환 결과 저장 (좌표, dong 등)
     coords_list = []
     dong_map = {}
@@ -187,6 +184,10 @@ def main():
     )
     
     st.altair_chart(bar_chart + text, use_container_width=True)
+    
+    # 회원 정보를 맨 아래에 표시
+    st.subheader("회원 정보")
+    st.dataframe(df)
 
 if __name__ == "__main__":
     main()
