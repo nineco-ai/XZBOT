@@ -1,43 +1,54 @@
-import re
 import streamlit as st
 import pandas as pd
-import folium
-from folium.plugins import MarkerCluster
-from streamlit_folium import folium_static
-from geopy.geocoders import Nominatim
-from geopy.exc import GeocoderTimedOut
+import requests
 import time
+import re
+import json
+import streamlit.components.v1 as components
 
+# 네이버 지오코딩 API를 사용한 좌표 변환 함수
 @st.cache_data
 def get_coordinates(address):
-    """주소를 위도/경도로 변환하는 함수 - '대한민국' 접두어 추가"""
-    if not address:  # 주소가 빈 문자열이면 None 반환
+    """주소를 위도/경도로 변환 (네이버 지오코딩 API 사용)"""
+    if not address:
         return None
+    client_id = "4w2120h8i6"         # 네이버 클라우드 플랫폼에서 발급받은 Client ID
+    client_secret = "M4K2SNk548aDUap1e3sgQrJ3P2uiIkz6abh8GS7A"   # 네이버 클라우드 플랫폼에서 발급받은 Client Secret
+    # 대한민국 접두어 추가 (검색 정확도 향상)
+    query = "대한민국 " + address
+    url = f"https://naveropenapi.apigw.ntruss.com/map-geocode/v2/geocode?query={query}"
+    headers = {
+        "X-NCP-APIGW-API-KEY-ID": client_id,
+        "X-NCP-APIGW-API-KEY": client_secret
+    }
     try:
-        geolocator = Nominatim(user_agent="my_streamlit_app")
-        query = "대한민국 " + address
-        location = geolocator.geocode(query)
-        if location:
-            return (location.latitude, location.longitude)
-        return None
-    except GeocoderTimedOut:
-        time.sleep(1)
-        return get_coordinates(address)
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            result = response.json()
+            if result['addresses']:
+                # 네이버 API는 'x'에 경도, 'y'에 위도를 반환
+                lat = float(result['addresses'][0]['y'])
+                lon = float(result['addresses'][0]['x'])
+                return (lat, lon)
     except Exception as e:
-        print(f"Error: {e}")
-        return None
+        st.error(f"Geocoding error: {e}")
+    return None
 
 def extract_dong(addr):
-    """주소에서 행정동(예: '미산동', '은행동') 추출 (정규표현식은 상황에 따라 수정 필요)"""
+    """
+    주소에서 행정동 추출
+    예: '경기도 시흥시 미산동 140-16' → '미산동'
+    (정규표현식은 필요에 따라 수정)
+    """
     m = re.search(r'시흥시\s+(\S+동)', addr)
     if m:
         return m.group(1)
     return None
 
 def main():
-    st.title('시흥XZ 청년단 회사 위치 지도')
+    st.title("시흥XZ 청년단 회사 위치 (Naver 지도)")
     
-    # 데이터 하드코딩 (예시)
+    # 예시 데이터 (행정동 주소 형식)
     data = {
         '회사명': [
             '㈜쿨원', '㈜이아이', '㈜옹옹', '우수기공', '㈜뉴에이지원', 
@@ -73,7 +84,7 @@ def main():
             '경기도 시흥시 정왕동 1289-8',
             '경기도 시흥시 안현동 446-12',
             '경기도 시흥시 월곶동 1011-24',
-            '경기도 시흥시 미산동 234-12',  # 예시: 하성엔프라 주소
+            '경기도 시흥시 미산동 234-12',
             '경기도 시흥시 배곧동 204',
             '경기도 시흥시 정왕동 1800-3',
             '경기도 시흥시 정왕동 1800-3',
@@ -97,11 +108,10 @@ def main():
     }
     
     df = pd.DataFrame(data)
-    
     st.subheader("회원 정보")
     st.dataframe(df)
     
-    # 먼저 좌표 변환 시도 결과를 저장 (좌표, dong 등)
+    # 좌표 계산 및 동별 그룹화
     coords_list = []
     dong_map = {}
     failed_indices = []
@@ -111,14 +121,11 @@ def main():
     
     for idx, row in df.iterrows():
         progress_bar.progress((idx + 1) / len(df))
-        status_text.text(f"처리 중... {idx + 1}/{len(df)}")
-        
+        status_text.text(f"Processing {idx + 1}/{len(df)}")
         coord = get_coordinates(row['주소'])
         dong = extract_dong(row['주소'])
         coords_list.append(coord)
-        
         if coord:
-            # 동별로 좌표 저장
             if dong:
                 dong_map.setdefault(dong, []).append(coord)
         else:
@@ -127,32 +134,71 @@ def main():
     progress_bar.empty()
     status_text.empty()
     
-    # 실패한 주소들에 대해, 같은 동에서 좌표가 있는 경우 평균 좌표로 대체
+    # 실패한 주소는 같은 동의 평균 좌표로 대체
     for idx in failed_indices:
         addr = df.loc[idx, '주소']
         dong = extract_dong(addr)
         if dong and dong in dong_map and len(dong_map[dong]) > 0:
-            # 평균 좌표 계산
-            lat = sum([pt[0] for pt in dong_map[dong]]) / len(dong_map[dong])
-            lon = sum([pt[1] for pt in dong_map[dong]]) / len(dong_map[dong])
-            coords_list[idx] = (lat, lon)
+            avg_lat = sum(pt[0] for pt in dong_map[dong]) / len(dong_map[dong])
+            avg_lon = sum(pt[1] for pt in dong_map[dong]) / len(dong_map[dong])
+            coords_list[idx] = (avg_lat, avg_lon)
     
-    # 좌표 결과를 df에 추가
     df['coords'] = coords_list
     
-    st.subheader("회사 위치 지도")
-    m = folium.Map(location=[37.3799, 126.8031], zoom_start=12)
-    marker_cluster = MarkerCluster().add_to(m)
-    
+    # 마커 데이터를 준비 (회사명, 주소, 위도, 경도)
+    marker_data = []
     for idx, row in df.iterrows():
         if row['coords']:
-            folium.Marker(
-                row['coords'],
-                popup=f"회사명: {row['회사명']}<br>주소: {row['주소']}",
-                tooltip=row['회사명']
-            ).add_to(marker_cluster)
+            marker_data.append({
+                'company': row['회사명'],
+                'address': row['주소'],
+                'lat': row['coords'][0],
+                'lon': row['coords'][1]
+            })
+    marker_data_json = json.dumps(marker_data)
     
-    folium_static(m)
+    # 네이버 지도 HTML 생성
+    naver_client_id = "YOUR_NAVER_CLIENT_ID"  # 지도 표시용 Client ID
+    html_string = f"""
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <script type="text/javascript" src="https://openapi.map.naver.com/openapi/v3/maps.js?ncpClientId={naver_client_id}"></script>
+        <style>
+          #map {{
+            width: 100%;
+            height: 650px;
+          }}
+        </style>
+      </head>
+      <body>
+        <div id="map"></div>
+        <script>
+          var map = new naver.maps.Map('map', {{
+            center: new naver.maps.LatLng(37.3799, 126.8031),
+            zoom: 12
+          }});
+          var markerData = {marker_data_json};
+          markerData.forEach(function(item) {{
+            var marker = new naver.maps.Marker({{
+              position: new naver.maps.LatLng(item.lat, item.lon),
+              map: map,
+              title: item.company + "\\n" + item.address
+            }});
+            var infoWindow = new naver.maps.InfoWindow({{
+              content: '<div style="padding:5px;">회사명: ' + item.company + '<br>주소: ' + item.address + '</div>'
+            }});
+            naver.maps.Event.addListener(marker, "click", function(e) {{
+              infoWindow.open(map, marker);
+            }});
+          }});
+        </script>
+      </body>
+    </html>
+    """
+    
+    st.subheader("회사 위치 지도 (Naver 지도)")
+    components.html(html_string, height=700)
     
     st.subheader("통계")
     st.write(f"총 회사 수: {len(df)}")
