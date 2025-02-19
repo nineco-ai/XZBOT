@@ -179,7 +179,7 @@ def main():
     text = bar_chart.mark_text(
         align='center',
         baseline='middle',
-        fontSize=16,
+        fontSize=25,
         fontWeight='bold',
         color='white'
     ).encode(
