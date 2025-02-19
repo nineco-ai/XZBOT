@@ -17,8 +17,11 @@ def get_coordinates(address):
             return location.latitude, location.longitude
         return None
     except GeocoderTimedOut:
-        time.sleep(1)
+        time.sleep(1)  # 요청 간에 1초 대기
         return get_coordinates(address)
+    except Exception as e:
+        print(f"Error: {e}")  # 오류 메시지 출력
+        return None
 
 def main():
     st.title('시흥XZ 청년단 회사 위치 지도')
